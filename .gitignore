@@ -41,3 +41,7 @@ bin/
 
 ### Mac OS ###
 .DS_Store
+natives-macos-x86_64
+
+.idea
+

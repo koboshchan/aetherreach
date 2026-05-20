@@ -1,20 +1,91 @@
 plugins {
-    id 'java'
+    id 'application'
 }
 
 group = 'com.kobosh'
 version = '1.0-SNAPSHOT'
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_1_8
+    targetCompatibility = JavaVersion.VERSION_1_8
+}
 
 repositories {
     mavenCentral()
 }
 
 dependencies {
-    testImplementation platform('org.junit:junit-bom:5.10.0')
-    testImplementation 'org.junit.jupiter:junit-jupiter'
-    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    implementation 'org.lwjgl.lwjgl:lwjgl:2.9.0'
+    implementation 'org.lwjgl.lwjgl:lwjgl_util:2.9.0'
 }
 
-test {
-    useJUnitPlatform()
+application {
+    mainClass = 'com.kobosh.aetherreach.AetherReach'
+    applicationDefaultJvmArgs = ["-Djava.library.path=${projectDir}/natives-macos-x86_64"]
+}
+
+tasks.register('fatJar', Jar) {
+    group = 'build'
+    description = 'Builds a runnable jar with compiled classes and runtime dependencies.'
+    archiveClassifier = 'all'
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+
+    manifest {
+        attributes('Main-Class': application.mainClass.get())
+    }
+
+    from sourceSets.main.output
+    dependsOn configurations.runtimeClasspath
+    from {
+        configurations.runtimeClasspath.collect { dep ->
+            dep.isDirectory() ? dep : zipTree(dep)
+        }
+    }
+}
+
+tasks.register('runMacIntel', Exec) {
+    group = 'application'
+    description = 'Runs the game on Apple Silicon using Rosetta and an x86_64 Java 8 runtime.'
+    dependsOn tasks.named('fatJar')
+    workingDir = projectDir
+
+    doFirst {
+        def javaHome = new ByteArrayOutputStream()
+        exec {
+            commandLine '/usr/libexec/java_home', '-v', '1.8', '-a', 'x86_64'
+            standardOutput = javaHome
+        }
+        def javaBin = "${javaHome.toString().trim()}/bin/java"
+        commandLine(
+            'arch', '-x86_64', javaBin,
+            '-XstartOnFirstThread',
+            '-Djava.awt.headless=false',
+            '-Dapple.awt.UIElement=false',
+            '-Xdock:name=AetherReach',
+            "-Djava.library.path=${projectDir}/natives-macos-x86_64",
+            '-jar',
+            tasks.named('fatJar').get().archiveFile.get().asFile.absolutePath
+        )
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+}
+
+tasks.named('run', JavaExec) {
+    workingDir = projectDir
+    systemProperty 'java.library.path', file('natives-macos-x86_64').absolutePath
+    jvmArgs "-Djava.library.path=${file('natives-macos-x86_64').absolutePath}"
+
+    def isMac = org.gradle.internal.os.OperatingSystem.current().isMacOsX()
+    def isArm = System.getProperty('os.arch')?.toLowerCase()?.contains('aarch64')
+            || System.getProperty('os.arch')?.toLowerCase()?.contains('arm')
+
+    if (isMac && isArm) {
+        dependsOn tasks.named('runMacIntel')
+        onlyIf { false }
+    } else if (isMac) {
+        jvmArgs '-XstartOnFirstThread'
+    }
 }
