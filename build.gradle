@@ -43,11 +43,17 @@ tasks.register('fatJar', Jar) {
     }
 }
 
-tasks.register('runMacIntel', Exec) {
+// On macOS, LWJGL 2 needs -XstartOnFirstThread on the actual main process.
+// A Gradle JavaExec subprocess cannot satisfy this reliably, so on any Mac
+// we always build the fatJar and exec it directly instead.
+tasks.register('runMac', Exec) {
     group = 'application'
-    description = 'Runs the game on Apple Silicon using Rosetta and an x86_64 Java 8 runtime.'
+    description = 'Runs the game on macOS (Intel or Apple Silicon via Rosetta).'
     dependsOn tasks.named('fatJar')
     workingDir = projectDir
+    standardInput = System.in
+    standardOutput = System.out
+    errorOutput = System.err
 
     doFirst {
         def javaHome = new ByteArrayOutputStream()
@@ -69,23 +75,27 @@ tasks.register('runMacIntel', Exec) {
     }
 }
 
+// Keep the old name as an alias
+tasks.register('runMacIntel') {
+    group = 'application'
+    dependsOn tasks.named('runMac')
+}
+
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
 }
 
 tasks.named('run', JavaExec) {
     workingDir = projectDir
-    systemProperty 'java.library.path', file('natives-macos-x86_64').absolutePath
-    jvmArgs "-Djava.library.path=${file('natives-macos-x86_64').absolutePath}"
 
     def isMac = org.gradle.internal.os.OperatingSystem.current().isMacOsX()
-    def isArm = System.getProperty('os.arch')?.toLowerCase()?.contains('aarch64')
-            || System.getProperty('os.arch')?.toLowerCase()?.contains('arm')
 
-    if (isMac && isArm) {
-        dependsOn tasks.named('runMacIntel')
+    if (isMac) {
+        // Delegate to runMac; skip the JavaExec itself
+        dependsOn tasks.named('runMac')
         onlyIf { false }
-    } else if (isMac) {
-        jvmArgs '-XstartOnFirstThread'
+    } else {
+        systemProperty 'java.library.path', file('natives-macos-x86_64').absolutePath
+        jvmArgs "-Djava.library.path=${file('natives-macos-x86_64').absolutePath}"
     }
 }
