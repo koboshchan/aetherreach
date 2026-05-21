@@ -6,6 +6,8 @@ import com.kobosh.aetherreach.level.LevelRenderer;
 import java.nio.Buffer;
 import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
+import java.util.ArrayList;
+import java.util.List;
 import javax.swing.JOptionPane;
 import org.lwjgl.BufferUtils;
 import org.lwjgl.LWJGLException;
@@ -32,6 +34,11 @@ public class AetherReach implements Runnable {
     private HitResult hitResult;
     private final FontRenderer font = new FontRenderer();
     private int fps;
+    private boolean mouseGrabbed;
+    private boolean storyDialogOpen;
+    private int storyImageTex = -1;
+    private String storyTitle = "";
+    private String storyText = "";
 
     private void init() throws LWJGLException {
         Display.setDisplayMode(new DisplayMode(WINDOW_W, WINDOW_H));
@@ -67,6 +74,7 @@ public class AetherReach implements Runnable {
         player = new Player(world);
 
         Mouse.setGrabbed(true);
+        mouseGrabbed = true;
     }
 
     private void destroy() {
@@ -89,10 +97,13 @@ public class AetherReach implements Runnable {
         int frameCount = 0;
 
         try {
-            while (!Keyboard.isKeyDown(Keyboard.KEY_ESCAPE) && !Display.isCloseRequested()) {
+            while (!Display.isCloseRequested()) {
                 timer.advanceTime();
-                for (int i = 0; i < timer.ticks; i++)
-                    tick();
+                if (!storyDialogOpen) {
+                    for (int i = 0; i < timer.ticks; i++) {
+                        tick();
+                    }
+                }
                 render(timer.a);
 
                 frameCount++;
@@ -183,12 +194,34 @@ public class AetherReach implements Runnable {
     }
 
     private void render(float alpha) {
-        player.turn(Mouse.getDX(), Mouse.getDY());
-        performPick(alpha);
+        if (mouseGrabbed && !storyDialogOpen) {
+            player.turn(Mouse.getDX(), Mouse.getDY());
+        }
+        if (!storyDialogOpen) {
+            performPick(alpha);
+        }
 
         while (Mouse.next()) {
+            if (Mouse.getEventButton() == 0 && Mouse.getEventButtonState()) {
+                if (storyDialogOpen) {
+                    closeStoryDialog();
+                } else if (!mouseGrabbed) {
+                    Mouse.setGrabbed(true);
+                    mouseGrabbed = true;
+                }
+            }
         }
         while (Keyboard.next()) {
+            if (Keyboard.getEventKey() == Keyboard.KEY_ESCAPE && Keyboard.getEventKeyState()) {
+                Mouse.setGrabbed(false);
+                mouseGrabbed = false;
+            }
+            if (Keyboard.getEventKey() == Keyboard.KEY_0 && Keyboard.getEventKeyState()) {
+                showStoryDialog(
+                        "/char1.png",
+                        "Aether Reach",
+                        "You awaken on the edge of the sky course. Reach the beacon platform and do not fall into the void.");
+            }
             if (Keyboard.getEventKey() == Keyboard.KEY_RETURN && Keyboard.getEventKeyState()) {
                 world.save();
             }
@@ -209,6 +242,10 @@ public class AetherReach implements Runnable {
         if (hitResult != null)
             renderer.renderHit(hitResult);
 
+        if (storyDialogOpen) {
+            renderStoryDialog();
+        }
+
         font.drawDynamic("fps", "FPS: " + fps, 4, 4, screenW, screenH, false);
         font.drawDynamicRight("xyz",
                 String.format("X: %.1f  Y: %.1f  Z: %.1f", player.x, player.y, player.z),
@@ -218,6 +255,170 @@ public class AetherReach implements Runnable {
     }
 
     public static void main(String[] args) {
-        new Thread(new AetherReach()).start();
+        new AetherReach().run();
+    }
+
+    private void showStoryDialog(String imageResource, String title, String text) {
+        storyTitle = title;
+        storyText = text;
+        storyImageTex = Textures.loadTexture(imageResource, GL11.GL_NEAREST);
+        storyDialogOpen = true;
+        Mouse.setGrabbed(false);
+        mouseGrabbed = false;
+    }
+
+    private void closeStoryDialog() {
+        storyDialogOpen = false;
+        Mouse.setGrabbed(true);
+        mouseGrabbed = true;
+    }
+
+    private void renderStoryDialog() {
+        float panelW = Math.min(900.0F, screenW * 0.82F);
+        float panelH = Math.min(360.0F, screenH * 0.62F);
+        float panelX = (screenW - panelW) * 0.5F;
+        float panelY = (screenH - panelH) * 0.5F;
+
+        float imageSize = 256.0F;
+        float imageX = panelX + 28.0F;
+        float imageY = panelY + (panelH - imageSize) * 0.5F;
+
+        float textStartX = imageX + imageSize + 28.0F;
+        float titleY = panelY + 38.0F;
+        float bodyStartY = titleY + 44.0F;
+
+        GL11.glMatrixMode(GL11.GL_PROJECTION);
+        GL11.glPushMatrix();
+        GL11.glLoadIdentity();
+        GL11.glOrtho(0, screenW, screenH, 0, -1, 1);
+        GL11.glMatrixMode(GL11.GL_MODELVIEW);
+        GL11.glPushMatrix();
+        GL11.glLoadIdentity();
+
+        GL11.glDisable(GL11.GL_DEPTH_TEST);
+        GL11.glDisable(GL11.GL_CULL_FACE);
+        GL11.glDisable(GL11.GL_FOG);
+        GL11.glEnable(GL11.GL_BLEND);
+        GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+        GL11.glDisable(GL11.GL_TEXTURE_2D);
+
+        GL11.glColor4f(0.0F, 0.0F, 0.0F, 0.45F);
+        GL11.glBegin(GL11.GL_QUADS);
+        GL11.glVertex2f(0, 0);
+        GL11.glVertex2f(screenW, 0);
+        GL11.glVertex2f(screenW, screenH);
+        GL11.glVertex2f(0, screenH);
+        GL11.glEnd();
+
+        GL11.glColor4f(0.35F, 0.35F, 0.35F, 0.92F);
+        drawRoundedRect(panelX, panelY, panelW, panelH, 18.0F, 8);
+
+        GL11.glEnable(GL11.GL_TEXTURE_2D);
+        GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
+        GL11.glBindTexture(GL11.GL_TEXTURE_2D, storyImageTex);
+        GL11.glBegin(GL11.GL_QUADS);
+        GL11.glTexCoord2f(0, 0);
+        GL11.glVertex2f(imageX, imageY);
+        GL11.glTexCoord2f(1, 0);
+        GL11.glVertex2f(imageX + imageSize, imageY);
+        GL11.glTexCoord2f(1, 1);
+        GL11.glVertex2f(imageX + imageSize, imageY + imageSize);
+        GL11.glTexCoord2f(0, 1);
+        GL11.glVertex2f(imageX, imageY + imageSize);
+        GL11.glEnd();
+
+        GL11.glDisable(GL11.GL_BLEND);
+        GL11.glEnable(GL11.GL_DEPTH_TEST);
+        GL11.glEnable(GL11.GL_CULL_FACE);
+
+        GL11.glMatrixMode(GL11.GL_PROJECTION);
+        GL11.glPopMatrix();
+        GL11.glMatrixMode(GL11.GL_MODELVIEW);
+        GL11.glPopMatrix();
+
+        font.drawDynamic("story-title", storyTitle, textStartX, titleY, screenW, screenH, false);
+
+        int maxCharsPerLine = Math.max(20, (int) ((panelX + panelW - textStartX - 28.0F) / 10.0F));
+        List<String> lines = wrapText(storyText, maxCharsPerLine, 4);
+        for (int i = 0; i < lines.size(); i++) {
+            font.drawDynamic("story-body-" + i, lines.get(i), textStartX, bodyStartY + i * 34.0F, screenW, screenH,
+                    false);
+        }
+
+        font.drawDynamic(
+                "story-continue",
+                "Click to continue",
+                screenW * 0.5F,
+                panelY + panelH - 30.0F,
+                screenW,
+                screenH,
+                true);
+    }
+
+    private List<String> wrapText(String text, int maxCharsPerLine, int maxLines) {
+        List<String> lines = new ArrayList<>();
+        String[] words = text.split("\\s+");
+        StringBuilder current = new StringBuilder();
+
+        for (String word : words) {
+            if (current.length() == 0) {
+                current.append(word);
+                continue;
+            }
+            if (current.length() + 1 + word.length() > maxCharsPerLine) {
+                lines.add(current.toString());
+                if (lines.size() == maxLines - 1) {
+                    break;
+                }
+                current.setLength(0);
+                current.append(word);
+            } else {
+                current.append(' ').append(word);
+            }
+        }
+
+        if (lines.size() < maxLines && current.length() > 0) {
+            lines.add(current.toString());
+        }
+        return lines;
+    }
+
+    private void drawRoundedRect(float x, float y, float w, float h, float radius, int arcSteps) {
+        float r = Math.max(0.0F, Math.min(radius, Math.min(w, h) * 0.5F));
+
+        GL11.glBegin(GL11.GL_QUADS);
+        GL11.glVertex2f(x + r, y);
+        GL11.glVertex2f(x + w - r, y);
+        GL11.glVertex2f(x + w - r, y + h);
+        GL11.glVertex2f(x + r, y + h);
+
+        GL11.glVertex2f(x, y + r);
+        GL11.glVertex2f(x + r, y + r);
+        GL11.glVertex2f(x + r, y + h - r);
+        GL11.glVertex2f(x, y + h - r);
+
+        GL11.glVertex2f(x + w - r, y + r);
+        GL11.glVertex2f(x + w, y + r);
+        GL11.glVertex2f(x + w, y + h - r);
+        GL11.glVertex2f(x + w - r, y + h - r);
+        GL11.glEnd();
+
+        drawCornerFan(x + r, y + r, r, (float) Math.PI, (float) (Math.PI * 1.5), arcSteps);
+        drawCornerFan(x + w - r, y + r, r, (float) (Math.PI * 1.5), (float) (Math.PI * 2.0), arcSteps);
+        drawCornerFan(x + w - r, y + h - r, r, 0.0F, (float) (Math.PI * 0.5), arcSteps);
+        drawCornerFan(x + r, y + h - r, r, (float) (Math.PI * 0.5), (float) Math.PI, arcSteps);
+    }
+
+    private void drawCornerFan(float cx, float cy, float radius, float angleStart, float angleEnd, int steps) {
+        GL11.glBegin(GL11.GL_TRIANGLE_FAN);
+        GL11.glVertex2f(cx, cy);
+        for (int i = 0; i <= steps; i++) {
+            float t = i / (float) steps;
+            float a = angleStart + (angleEnd - angleStart) * t;
+            float px = cx + (float) Math.cos(a) * radius;
+            float py = cy + (float) Math.sin(a) * radius;
+            GL11.glVertex2f(px, py);
+        }
+        GL11.glEnd();
     }
 }
