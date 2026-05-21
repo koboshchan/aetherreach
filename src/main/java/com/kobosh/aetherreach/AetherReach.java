@@ -232,7 +232,7 @@ public class AetherReach implements Runnable {
         GL11.glEnable(GL11.GL_CULL_FACE);
         GL11.glEnable(GL11.GL_FOG);
         GL11.glFogi(GL11.GL_FOG_MODE, GL11.GL_EXP);
-        GL11.glFogf(GL11.GL_FOG_DENSITY, 0.025F);
+        GL11.glFogf(GL11.GL_FOG_DENSITY, 0.05625F);
         GL11.glFog(GL11.GL_FOG_COLOR, fogColorBuf);
         renderer.render(player, 0);
         GL11.glDisable(GL11.GL_FOG);
