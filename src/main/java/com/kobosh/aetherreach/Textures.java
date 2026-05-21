@@ -29,24 +29,16 @@ public class Textures {
             int[] raw = img.getRGB(0, 0, w, h, null, 0, w);
 
             ByteBuffer pixels = BufferUtils.createByteBuffer(w * h * 4);
-            for (int pixel : raw) {
+            for (int i = 0; i < raw.length; i++) {
+                int pixel = raw[i];
                 int a = (pixel >> 24) & 0xFF;
                 int r = (pixel >> 16) & 0xFF;
-                int g = (pixel >>  8) & 0xFF;
-                int b =  pixel        & 0xFF;
-                raw[pixels.position() / 4] = (a << 24) | (b << 16) | (g << 8) | r;
+                int g = (pixel >> 8) & 0xFF;
+                int b = pixel & 0xFF;
+                raw[i] = (a << 24) | (b << 16) | (g << 8) | r;
             }
-            // Re-pack ABGR → RGBA for OpenGL
-            ByteBuffer buf = BufferUtils.createByteBuffer(w * h * 4);
-            for (int pixel : raw) {
-                int a = (pixel >> 24) & 0xFF;
-                int r = (pixel >> 16) & 0xFF;
-                int g = (pixel >>  8) & 0xFF;
-                int b =  pixel        & 0xFF;
-                buf.put((byte) r).put((byte) g).put((byte) b).put((byte) a);
-            }
-            buf.flip();
-            GLU.gluBuild2DMipmaps(GL11.GL_TEXTURE_2D, GL11.GL_RGBA, w, h, GL11.GL_RGBA, GL11.GL_UNSIGNED_BYTE, buf);
+            pixels.asIntBuffer().put(raw);
+            GLU.gluBuild2DMipmaps(GL11.GL_TEXTURE_2D, GL11.GL_RGBA, w, h, GL11.GL_RGBA, GL11.GL_UNSIGNED_BYTE, pixels);
 
             cache.put(resource, id);
             return id;

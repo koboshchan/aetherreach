@@ -23,8 +23,8 @@ public class AetherReach implements Runnable {
     private int screenW, screenH;
     private final Timer timer = new Timer(60.0F);
     private final FloatBuffer fogColorBuf = BufferUtils.createFloatBuffer(4);
-    private final IntBuffer viewportBuf   = BufferUtils.createIntBuffer(16);
-    private final IntBuffer selectBuf     = BufferUtils.createIntBuffer(2000);
+    private final IntBuffer viewportBuf = BufferUtils.createIntBuffer(16);
+    private final IntBuffer selectBuf = BufferUtils.createIntBuffer(2000);
 
     private Level world;
     private LevelRenderer renderer;
@@ -43,12 +43,12 @@ public class AetherReach implements Runnable {
         screenW = Display.getDisplayMode().getWidth();
         screenH = Display.getDisplayMode().getHeight();
 
-        // sky color #0E0ACA (similar blue-ish sky)
-        int skyRgb = 0x0E0ACA;
+        // light blue sky
+        int skyRgb = 0x87CEEB;
         float skyR = ((skyRgb >> 16) & 0xFF) / 255.0F;
-        float skyG = ((skyRgb >>  8) & 0xFF) / 255.0F;
-        float skyB = (skyRgb & 0xFF)          / 255.0F;
-        fogColorBuf.put(new float[]{skyR, skyG, skyB, 1.0F});
+        float skyG = ((skyRgb >> 8) & 0xFF) / 255.0F;
+        float skyB = (skyRgb & 0xFF) / 255.0F;
+        fogColorBuf.put(new float[] { 0.25F, 0.25F, 0.25F, 1.0F });
         ((Buffer) fogColorBuf).flip();
 
         GL11.glEnable(GL11.GL_TEXTURE_2D);
@@ -61,10 +61,10 @@ public class AetherReach implements Runnable {
         GL11.glLoadIdentity();
         GL11.glMatrixMode(GL11.GL_MODELVIEW);
 
-        world    = new Level(256, 256, 64);
+        world = new Level(256, 256, 64);
         world.generateParkour(40);
         renderer = new LevelRenderer(world);
-        player   = new Player(world);
+        player = new Player(world);
 
         Mouse.setGrabbed(true);
     }
@@ -91,7 +91,8 @@ public class AetherReach implements Runnable {
         try {
             while (!Keyboard.isKeyDown(Keyboard.KEY_ESCAPE) && !Display.isCloseRequested()) {
                 timer.advanceTime();
-                for (int i = 0; i < timer.ticks; i++) tick();
+                for (int i = 0; i < timer.ticks; i++)
+                    tick();
                 render(timer.a);
 
                 frameCount++;
@@ -166,24 +167,27 @@ public class AetherReach implements Runnable {
             selectBuf.get(); // maxZ – unused
 
             if (minZ >= closestZ && i != 0) {
-                for (int n = 0; n < nameCount; n++) selectBuf.get();
+                for (int n = 0; n < nameCount; n++)
+                    selectBuf.get();
             } else {
                 closestZ = minZ;
                 bestCount = nameCount;
-                for (int n = 0; n < nameCount; n++) bestNames[n] = selectBuf.get();
+                for (int n = 0; n < nameCount; n++)
+                    bestNames[n] = selectBuf.get();
             }
         }
 
         hitResult = (bestCount > 0)
-            ? new HitResult(bestNames[0], bestNames[1], bestNames[2], bestNames[3], bestNames[4])
-            : null;
+                ? new HitResult(bestNames[0], bestNames[1], bestNames[2], bestNames[3], bestNames[4])
+                : null;
     }
 
     private void render(float alpha) {
         player.turn(Mouse.getDX(), Mouse.getDY());
         performPick(alpha);
 
-        while (Mouse.next()) {}
+        while (Mouse.next()) {
+        }
         while (Keyboard.next()) {
             if (Keyboard.getEventKey() == Keyboard.KEY_RETURN && Keyboard.getEventKeyState()) {
                 world.save();
@@ -194,24 +198,21 @@ public class AetherReach implements Runnable {
         setupPerspective(alpha);
         GL11.glEnable(GL11.GL_CULL_FACE);
         GL11.glEnable(GL11.GL_FOG);
-        GL11.glFogi(GL11.GL_FOG_MODE,    GL11.GL_EXP);
-        GL11.glFogf(GL11.GL_FOG_DENSITY, 0.2F);
-        GL11.glFog(GL11.GL_FOG_COLOR,    fogColorBuf);
-        GL11.glDisable(GL11.GL_FOG);
-
+        GL11.glFogi(GL11.GL_FOG_MODE, GL11.GL_EXP);
+        GL11.glFogf(GL11.GL_FOG_DENSITY, 0.025F);
+        GL11.glFog(GL11.GL_FOG_COLOR, fogColorBuf);
         renderer.render(player, 0);
-
-        GL11.glEnable(GL11.GL_FOG);
+        GL11.glDisable(GL11.GL_FOG);
         renderer.render(player, 1);
         GL11.glDisable(GL11.GL_TEXTURE_2D);
 
-        if (hitResult != null) renderer.renderHit(hitResult);
+        if (hitResult != null)
+            renderer.renderHit(hitResult);
 
-        GL11.glDisable(GL11.GL_FOG);
         font.drawDynamic("fps", "FPS: " + fps, 4, 4, screenW, screenH, false);
         font.drawDynamicRight("xyz",
-            String.format("X: %.1f  Y: %.1f  Z: %.1f", player.x, player.y, player.z),
-            screenW - 4, 4, screenW, screenH);
+                String.format("X: %.1f  Y: %.1f  Z: %.1f", player.x, player.y, player.z),
+                screenW - 4, 4, screenW, screenH);
 
         Display.update();
     }
