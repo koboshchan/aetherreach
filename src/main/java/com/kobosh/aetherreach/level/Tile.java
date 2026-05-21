@@ -7,7 +7,7 @@ public class Tile {
     public static final Tile goal = new Tile(3);
 
     private static final float TEX_SIZE = 1.0F / 16.0F;
-    private static final float TEX_PAD = 1.0F / 256.0F;
+    private static final float TEX_PAD = 0.01F / 256.0F;
     private static final float SHADOW_SHADE = 0.75F;
 
     private final int texIndex;
