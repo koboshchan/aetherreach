@@ -132,7 +132,7 @@ public class Level {
                     newDir = pickDir(rand, lastDir, true, true, true);
                     if      (newDir == 1) { newFdx = -fdz; newFdz =  fdx; }
                     else if (newDir == 2) { newFdx =  fdz; newFdz = -fdx; }
-                    dx = newFdx * 2; dz = newFdz * 2;
+                    dx = newFdx * 3; dz = newFdz * 3;
                     break;
                 }
                 case 1: { // diagonal 1 flat: left or right only (gap at (1,1))
@@ -152,7 +152,7 @@ public class Level {
                     newDir = pickDir(rand, lastDir, true, true, true);
                     if      (newDir == 1) { newFdx = -fdz; newFdz =  fdx; }
                     else if (newDir == 2) { newFdx =  fdz; newFdz = -fdx; }
-                    dx = newFdx; dz = newFdz;
+                    dx = newFdx * 2; dz = newFdz * 2;
                     dy = 1;
                     break;
                 }
