@@ -4,6 +4,7 @@ import com.kobosh.aetherreach.level.Level;
 import com.kobosh.aetherreach.phys.AABB;
 import java.util.List;
 import org.lwjgl.input.Keyboard;
+import java.util.ArrayList;
 
 public class Player {
     private final Level world;
@@ -25,9 +26,9 @@ public class Player {
     }
 
     private void resetPos() {
-        float spawnX = 128.0F;
+        float spawnX = 128.5F;
         float spawnY = world.depth * 2 / 3 + 1 + EYE_HEIGHT;
-        float spawnZ = 128.0F;
+        float spawnZ = 128.5F;
         teleport(spawnX, spawnY, spawnZ);
     }
 
@@ -35,6 +36,7 @@ public class Player {
         x = nx; y = ny; z = nz;
         bb = new AABB(nx - WIDTH, ny - HEIGHT, nz - WIDTH,
                       nx + WIDTH, ny + HEIGHT, nz + WIDTH);
+        resolveBlockIntersection();
     }
 
     public void turn(float dx, float dy) {
@@ -74,6 +76,8 @@ public class Player {
             xd *= 0.8F;
             zd *= 0.8F;
         }
+
+        resolveBlockIntersection();
 
         // Fell off course — reset
         if (onGround && y < 45.0F) {
@@ -118,5 +122,64 @@ public class Player {
 
         xd += xa * cosY - za * sinY;
         zd += za * cosY + xa * sinY;
+    }
+
+    /**
+     * Pushes the player out of any block they are intersecting.
+     *
+     * - Feet stuck only  → push up.
+     * - Head stuck (or entire body) → push horizontally toward the nearest clear space.
+     */
+    private void resolveBlockIntersection() {
+        if (!isInBlock(bb)) return;
+
+        final int   MAX  = 80;
+        final float STEP = 0.05F;
+
+        float midY = (bb.y0 + bb.y1) / 2.0F;
+
+        boolean feetStuck = isInBlock(new AABB(bb.x0, bb.y0, bb.z0, bb.x1, midY, bb.z1));
+        boolean headStuck = isInBlock(new AABB(bb.x0, midY,  bb.z0, bb.x1, bb.y1, bb.z1));
+
+        if (feetStuck && !headStuck) {
+            // Only feet in a block — push up
+            for (int i = 0; i < MAX && isInBlock(bb); i++) {
+                bb.move(0, STEP, 0);
+            }
+        } else {
+            // Head stuck or entire body — push sideways toward nearest free space
+            int[] dxDir = { 1, -1,  0,  0 };
+            int[] dzDir = { 0,  0,  1, -1 };
+
+            int bestDir   = 0;
+            int bestSteps = Integer.MAX_VALUE;
+
+            for (int d = 0; d < 4; d++) {
+                AABB test = new AABB(bb.x0, bb.y0, bb.z0, bb.x1, bb.y1, bb.z1);
+                for (int i = 0; i <= MAX; i++) {
+                    if (!isInBlock(test)) {
+                        if (i < bestSteps) { bestSteps = i; bestDir = d; }
+                        break;
+                    }
+                    test.move(dxDir[d] * STEP, 0, dzDir[d] * STEP);
+                }
+            }
+
+            for (int i = 0; i < bestSteps && isInBlock(bb); i++) {
+                bb.move(dxDir[bestDir] * STEP, 0, dzDir[bestDir] * STEP);
+            }
+        }
+
+        // Sync logical position from resolved AABB
+        x = (bb.x0 + bb.x1) / 2.0F;
+        y = bb.y0 + EYE_HEIGHT;
+        z = (bb.z0 + bb.z1) / 2.0F;
+    }
+
+    private boolean isInBlock(AABB box) {
+        for (AABB c : world.getCubes(box)) {
+            if (c.intersects(box)) return true;
+        }
+        return false;
     }
 }
