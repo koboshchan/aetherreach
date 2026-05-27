@@ -17,8 +17,8 @@ public class LevelRenderer implements LevelListener {
         this.world = world;
         world.addListener(this);
 
-        xChunks = world.width  / CHUNK_SIZE;
-        yChunks = world.depth  / CHUNK_SIZE;
+        xChunks = world.width / CHUNK_SIZE;
+        yChunks = world.depth / CHUNK_SIZE;
         zChunks = world.height / CHUNK_SIZE;
         chunks = new Chunk[xChunks * yChunks * zChunks];
 
@@ -28,8 +28,7 @@ public class LevelRenderer implements LevelListener {
                     int bx0 = cx * CHUNK_SIZE, bx1 = Math.min((cx + 1) * CHUNK_SIZE, world.width);
                     int by0 = cy * CHUNK_SIZE, by1 = Math.min((cy + 1) * CHUNK_SIZE, world.depth);
                     int bz0 = cz * CHUNK_SIZE, bz1 = Math.min((cz + 1) * CHUNK_SIZE, world.height);
-                    chunks[(cx + cy * xChunks) * zChunks + cz] =
-                        new Chunk(world, bx0, by0, bz0, bx1, by1, bz1);
+                    chunks[(cx + cy * xChunks) * zChunks + cz] = new Chunk(world, bx0, by0, bz0, bx1, by1, bz1);
                 }
             }
         }
@@ -80,13 +79,93 @@ public class LevelRenderer implements LevelListener {
 
     public void renderHit(HitResult hit) {
         GL11.glEnable(GL11.GL_BLEND);
-        GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE);
+        GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+        GL11.glDisable(GL11.GL_TEXTURE_2D);
         float pulse = (float) Math.sin(System.currentTimeMillis() / 100.0) * 0.2F + 0.4F;
-        GL11.glColor4f(1.0F, 1.0F, 1.0F, pulse);
-        tess.init();
-        Tile.rock.renderFace(tess, hit.x, hit.y, hit.z, hit.f);
-        tess.flush();
+        GL11.glColor4f(1.0F, 1.0F, 1.0F, pulse + 0.2F);
+        GL11.glLineWidth(3.0F);
+        renderFaceOutline(hit);
+        GL11.glLineWidth(1.0F);
+        GL11.glEnable(GL11.GL_TEXTURE_2D);
         GL11.glDisable(GL11.GL_BLEND);
+    }
+
+    private void renderFaceOutline(HitResult hit) {
+        float x0 = hit.x;
+        float x1 = hit.x + 1.0F;
+        float y0 = hit.y;
+        float y1 = hit.y + 1.0F;
+        float z0 = hit.z;
+        float z1 = hit.z + 1.0F;
+
+        float eps = 0.002F;
+        float ox = 0.0F;
+        float oy = 0.0F;
+        float oz = 0.0F;
+
+        switch (hit.f) {
+            case 0:
+                oy = -eps;
+                break;
+            case 1:
+                oy = eps;
+                break;
+            case 2:
+                oz = -eps;
+                break;
+            case 3:
+                oz = eps;
+                break;
+            case 4:
+                ox = -eps;
+                break;
+            case 5:
+                ox = eps;
+                break;
+            default:
+                return;
+        }
+
+        GL11.glBegin(GL11.GL_LINE_LOOP);
+        switch (hit.f) {
+            case 0:
+                GL11.glVertex3f(x0 + ox, y0 + oy, z1 + oz);
+                GL11.glVertex3f(x0 + ox, y0 + oy, z0 + oz);
+                GL11.glVertex3f(x1 + ox, y0 + oy, z0 + oz);
+                GL11.glVertex3f(x1 + ox, y0 + oy, z1 + oz);
+                break;
+            case 1:
+                GL11.glVertex3f(x1 + ox, y1 + oy, z1 + oz);
+                GL11.glVertex3f(x1 + ox, y1 + oy, z0 + oz);
+                GL11.glVertex3f(x0 + ox, y1 + oy, z0 + oz);
+                GL11.glVertex3f(x0 + ox, y1 + oy, z1 + oz);
+                break;
+            case 2:
+                GL11.glVertex3f(x0 + ox, y1 + oy, z0 + oz);
+                GL11.glVertex3f(x1 + ox, y1 + oy, z0 + oz);
+                GL11.glVertex3f(x1 + ox, y0 + oy, z0 + oz);
+                GL11.glVertex3f(x0 + ox, y0 + oy, z0 + oz);
+                break;
+            case 3:
+                GL11.glVertex3f(x0 + ox, y1 + oy, z1 + oz);
+                GL11.glVertex3f(x0 + ox, y0 + oy, z1 + oz);
+                GL11.glVertex3f(x1 + ox, y0 + oy, z1 + oz);
+                GL11.glVertex3f(x1 + ox, y1 + oy, z1 + oz);
+                break;
+            case 4:
+                GL11.glVertex3f(x0 + ox, y1 + oy, z1 + oz);
+                GL11.glVertex3f(x0 + ox, y1 + oy, z0 + oz);
+                GL11.glVertex3f(x0 + ox, y0 + oy, z0 + oz);
+                GL11.glVertex3f(x0 + ox, y0 + oy, z1 + oz);
+                break;
+            case 5:
+                GL11.glVertex3f(x1 + ox, y0 + oy, z1 + oz);
+                GL11.glVertex3f(x1 + ox, y0 + oy, z0 + oz);
+                GL11.glVertex3f(x1 + ox, y1 + oy, z0 + oz);
+                GL11.glVertex3f(x1 + ox, y1 + oy, z1 + oz);
+                break;
+        }
+        GL11.glEnd();
     }
 
     private void markDirty(int x0, int y0, int z0, int x1, int y1, int z1) {

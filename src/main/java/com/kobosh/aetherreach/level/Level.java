@@ -104,46 +104,109 @@ public class Level {
     public void generateParkour(int length) {
         if (length <= 0) return;
         Random rand = new Random();
-        goalY = 42 + (int) (length * 0.5f);
+
+        int cy = depth  * 2 / 3 + 1;
+
+        int[][] dirs = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}};
+        int[] startDir = dirs[rand.nextInt(4)];
+        int fdx = startDir[0], fdz = startDir[1];
 
         int cx = width  / 2;
         int cz = height / 2;
 
-        // random initial direction: +x, -x, +z, -z
-        int[][] dirs = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}};
-        int[] dir = dirs[rand.nextInt(4)];
-        int fdx = dir[0], fdz = dir[1];
+        // Collect all block positions before placing them so we can shift if needed
+        ArrayList<int[]> blocks = new ArrayList<>();
+        blocks.add(new int[]{cx, cy, cz});
 
-        int[] px = new int[length];
-        int[] pz = new int[length];
-        px[0] = cx;
-        pz[0] = cz;
+        int lastDir = 0; // 0=forward, 1=left, 2=right
 
-        int prevTurn = 0; // 0=forward, 1=left, 2=right
-
-        for (int i = 1; i < length; i++) {
-            int turn;
-            if      (prevTurn == 1) turn = rand.nextBoolean() ? 0 : 2;
-            else if (prevTurn == 2) turn = rand.nextBoolean() ? 0 : 1;
-            else                   turn = rand.nextInt(3);
-
-            if (turn == 1) { // rotate CCW
-                int nd = -fdz; fdz = fdx; fdx = nd;
-            } else if (turn == 2) { // rotate CW
-                int nd = fdz; fdz = -fdx; fdx = nd;
-            }
-            prevTurn = turn;
-
-            cx = Math.max(1, Math.min(width  - 2, cx + fdx * 2));
-            cz = Math.max(1, Math.min(height - 2, cz + fdz * 2));
-            px[i] = cx;
-            pz[i] = cz;
-        }
-
-        int startY = depth * 2 / 3;
         for (int i = 0; i < length; i++) {
-            int y = (length == 1) ? startY : startY + ((goalY - startY) * i) / (length - 1);
-            setTile(px[i], y, pz[i], 1);
+            int jumpType = rand.nextInt(4);
+
+            int dx = 0, dz = 0, dy = 0;
+            int newDir;
+            int newFdx = fdx, newFdz = fdz;
+
+            switch (jumpType) {
+                case 0: { // forward 2: forward, left, or right
+                    newDir = pickDir(rand, lastDir, true, true, true);
+                    if      (newDir == 1) { newFdx = -fdz; newFdz =  fdx; }
+                    else if (newDir == 2) { newFdx =  fdz; newFdz = -fdx; }
+                    dx = newFdx * 2; dz = newFdz * 2;
+                    break;
+                }
+                case 1: { // diagonal 1 flat: left or right only (gap at (1,1))
+                    newDir = pickDir(rand, lastDir, false, true, true);
+                    if (newDir == 2) { dx = (fdx + fdz) * 2; dz = (fdz - fdx) * 2; }
+                    else             { dx = (fdx - fdz) * 2; dz = (fdz + fdx) * 2; }
+                    break;
+                }
+                case 2: { // diagonal 1 up: left or right only (gap at (1,1))
+                    newDir = pickDir(rand, lastDir, false, true, true);
+                    if (newDir == 2) { dx = (fdx + fdz) * 2; dz = (fdz - fdx) * 2; }
+                    else             { dx = (fdx - fdz) * 2; dz = (fdz + fdx) * 2; }
+                    dy = 1;
+                    break;
+                }
+                default: { // forward 1 up: forward, left, or right
+                    newDir = pickDir(rand, lastDir, true, true, true);
+                    if      (newDir == 1) { newFdx = -fdz; newFdz =  fdx; }
+                    else if (newDir == 2) { newFdx =  fdz; newFdz = -fdx; }
+                    dx = newFdx; dz = newFdz;
+                    dy = 1;
+                    break;
+                }
+            }
+
+            cx = Math.max(1, Math.min(width  - 2, cx + dx));
+            cy = Math.max(depth * 2 / 3 + 1, Math.min(depth - 2, cy + dy));
+            cz = Math.max(1, Math.min(height - 2, cz + dz));
+            fdx = newFdx;
+            fdz = newFdz;
+            if (newDir != 0) lastDir = newDir;
+
+            blocks.add(new int[]{cx, cy, cz});
         }
+
+        // Final goal block: one step forward and up
+        goalY = Math.min(cy + 1, depth - 2);
+        int gcx = Math.max(1, Math.min(width  - 2, cx + fdx));
+        int gcz = Math.max(1, Math.min(height - 2, cz + fdz));
+        blocks.add(new int[]{gcx, goalY, gcz});
+
+        // Shift all blocks in the initial forward direction if any overlap the
+        // player's spawn AABB at (128.5, spawnY, 128.5).
+        float spawnX = 128.5f, spawnZ = 128.5f;
+        float playerHalfW = 0.3f;
+        float px0 = spawnX - playerHalfW, px1 = spawnX + playerHalfW;
+        float pz0 = spawnZ - playerHalfW, pz1 = spawnZ + playerHalfW;
+
+        boolean overlaps = false;
+        for (int[] b : blocks) {
+            if (b[0] < px1 && b[0] + 1 > px0 && b[2] < pz1 && b[2] + 1 > pz0) {
+                overlaps = true;
+                break;
+            }
+        }
+        int shiftX = overlaps ? startDir[0] : 0;
+        int shiftZ = overlaps ? startDir[1] : 0;
+
+        for (int[] b : blocks) {
+            int bx = Math.max(1, Math.min(width  - 2, b[0] + shiftX));
+            int by = b[1];
+            int bz = Math.max(1, Math.min(height - 2, b[2] + shiftZ));
+            setTile(bx, by, bz, 1);
+        }
+    }
+
+    // Returns a direction (0=forward, 1=left, 2=right) respecting the
+    // "no same lateral direction twice in a row" constraint.
+    private int pickDir(Random rand, int lastDir, boolean canFwd, boolean canLeft, boolean canRight) {
+        ArrayList<Integer> avail = new ArrayList<>();
+        if (canFwd)                   avail.add(0);
+        if (canLeft  && lastDir != 1) avail.add(1);
+        if (canRight && lastDir != 2) avail.add(2);
+        if (avail.isEmpty())          avail.add(0); // safety fallback
+        return avail.get(rand.nextInt(avail.size()));
     }
 }

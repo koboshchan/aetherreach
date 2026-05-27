@@ -246,6 +246,10 @@ public class AetherReach implements Runnable {
             renderStoryDialog();
         }
 
+        if (!storyDialogOpen) {
+            renderCrosshair();
+        }
+
         font.drawDynamic("fps", "FPS: " + fps, 4, 4, screenW, screenH, false);
         font.drawDynamicRight("xyz",
                 String.format("X: %.1f  Y: %.1f  Z: %.1f", player.x, player.y, player.z),
@@ -420,5 +424,51 @@ public class AetherReach implements Runnable {
             GL11.glVertex2f(px, py);
         }
         GL11.glEnd();
+    }
+
+    private void renderCrosshair() {
+        float cx = screenW / 2.0F;
+        float cy = screenH / 2.0F;
+        float armLen = 6.0F;
+        float halfThickness = 1.0F; // total thickness = 2px
+
+        GL11.glMatrixMode(GL11.GL_PROJECTION);
+        GL11.glPushMatrix();
+        GL11.glLoadIdentity();
+        GL11.glOrtho(0, screenW, screenH, 0, -1, 1);
+        GL11.glMatrixMode(GL11.GL_MODELVIEW);
+        GL11.glPushMatrix();
+        GL11.glLoadIdentity();
+
+        GL11.glDisable(GL11.GL_TEXTURE_2D);
+        GL11.glDisable(GL11.GL_DEPTH_TEST);
+        GL11.glDisable(GL11.GL_CULL_FACE);
+        GL11.glDisable(GL11.GL_FOG);
+        GL11.glEnable(GL11.GL_BLEND);
+        GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+
+        GL11.glColor4f(1.0F, 1.0F, 1.0F, 0.95F);
+        GL11.glBegin(GL11.GL_QUADS);
+        // Horizontal arm
+        GL11.glVertex2f(cx - armLen, cy - halfThickness);
+        GL11.glVertex2f(cx + armLen, cy - halfThickness);
+        GL11.glVertex2f(cx + armLen, cy + halfThickness);
+        GL11.glVertex2f(cx - armLen, cy + halfThickness);
+        // Vertical arm
+        GL11.glVertex2f(cx - halfThickness, cy - armLen);
+        GL11.glVertex2f(cx + halfThickness, cy - armLen);
+        GL11.glVertex2f(cx + halfThickness, cy + armLen);
+        GL11.glVertex2f(cx - halfThickness, cy + armLen);
+        GL11.glEnd();
+
+        GL11.glDisable(GL11.GL_BLEND);
+        GL11.glEnable(GL11.GL_DEPTH_TEST);
+        GL11.glEnable(GL11.GL_CULL_FACE);
+        GL11.glEnable(GL11.GL_TEXTURE_2D);
+
+        GL11.glMatrixMode(GL11.GL_PROJECTION);
+        GL11.glPopMatrix();
+        GL11.glMatrixMode(GL11.GL_MODELVIEW);
+        GL11.glPopMatrix();
     }
 }
