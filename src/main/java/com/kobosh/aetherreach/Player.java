@@ -15,10 +15,12 @@ public class Player {
     public float yRot, xRot;
     public AABB bb;
     public boolean onGround = false;
+    public boolean died = false;
+    public Runnable onDeath = null;
 
     private static final float WIDTH  = 0.3F;
     private static final float HEIGHT = 0.9F;
-    private static final float EYE_HEIGHT = 1.62F;
+    public static final float EYE_HEIGHT = 1.62F;
 
     public Player(Level world) {
         this.world = world;
@@ -82,7 +84,11 @@ public class Player {
         // Fell off course — reset
         if (onGround && y < 45.0F) {
             boolean onStartPlatform = x > 124.0F && x < 132.0F && z > 124.0F && z < 132.0F;
-            if (!onStartPlatform) resetPos();
+            if (!onStartPlatform) {
+                died = true;
+                if (onDeath != null) onDeath.run();
+                resetPos();
+            }
         }
     }
 

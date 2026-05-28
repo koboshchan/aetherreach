@@ -3,12 +3,15 @@ package com.kobosh.aetherreach.level;
 import com.kobosh.aetherreach.phys.AABB;
 import java.util.ArrayList;
 import java.util.Random;
+import java.util.Set;
 
 public class Level {
     public final int width;
     public final int height;
     public final int depth;
     public int goalY = 52;
+    public int goalPlatformX = 128;
+    public int goalPlatformZ = 128;
 
     private final byte[] voxels;
     private final int[] lightColumn;
@@ -101,9 +104,17 @@ public class Level {
         }
     }
 
-    public void generateParkour(int length) {
+    public void generateParkour(int length, Set<String> enabledJumps) {
         if (length <= 0) return;
         Random rand = new Random();
+
+        // Build the list of jump type indices available for this level
+        ArrayList<Integer> allowedTypes = new ArrayList<>();
+        if (enabledJumps.contains("forward2flat")) allowedTypes.add(0);
+        if (enabledJumps.contains("diag1flat"))    allowedTypes.add(1);
+        if (enabledJumps.contains("diag1up"))      allowedTypes.add(2);
+        if (enabledJumps.contains("forward1up"))   allowedTypes.add(3);
+        if (allowedTypes.isEmpty()) { allowedTypes.add(0); allowedTypes.add(3); }
 
         int cy = depth  * 2 / 3 + 1;
 
@@ -121,7 +132,7 @@ public class Level {
         int lastDir = 0; // 0=forward, 1=left, 2=right
 
         for (int i = 0; i < length; i++) {
-            int jumpType = rand.nextInt(4);
+            int jumpType = allowedTypes.get(rand.nextInt(allowedTypes.size()));
 
             int dx = 0, dz = 0, dy = 0;
             int newDir;
@@ -168,11 +179,18 @@ public class Level {
             blocks.add(new int[]{cx, cy, cz});
         }
 
-        // Final goal block: one step forward and up
+        // Final goal: 3x3 platform, 1 air block gap forward, 1 block up.
+        // Center is 3 steps forward so nearest edge has 1 air gap.
         goalY = Math.min(cy + 1, depth - 2);
-        int gcx = Math.max(1, Math.min(width  - 2, cx + fdx));
-        int gcz = Math.max(1, Math.min(height - 2, cz + fdz));
-        blocks.add(new int[]{gcx, goalY, gcz});
+        int platCX = cx + fdx * 3;
+        int platCZ = cz + fdz * 3;
+        for (int ox = -1; ox <= 1; ox++) {
+            for (int oz = -1; oz <= 1; oz++) {
+                int bx = Math.max(1, Math.min(width  - 2, platCX + ox));
+                int bz = Math.max(1, Math.min(height - 2, platCZ + oz));
+                blocks.add(new int[]{bx, goalY, bz});
+            }
+        }
 
         // Shift all blocks in the initial forward direction if any overlap the
         // player's spawn AABB at (128.5, spawnY, 128.5).
@@ -190,6 +208,9 @@ public class Level {
         }
         int shiftX = overlaps ? startDir[0] : 0;
         int shiftZ = overlaps ? startDir[1] : 0;
+
+        goalPlatformX = platCX + shiftX;
+        goalPlatformZ = platCZ + shiftZ;
 
         for (int[] b : blocks) {
             int bx = Math.max(1, Math.min(width  - 2, b[0] + shiftX));

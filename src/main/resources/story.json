@@ -1,0 +1,98 @@
+{
+  "translation": {
+    "window.title": "Aether Reach",
+    "dialog.click_to_continue": "Click to Continue",
+    "hud.fps": "FPS",
+    "hud.coords": "X: %.1f  Y: %.1f  Z: %.1f"
+  },
+  "die_dialog": [
+    {
+      "type": "dialog",
+      "title": "Guide AI",
+      "text": "Don't give up, Kaelen. The path is still ahead of you.",
+      "texture": "/char1.png",
+      "bgColor": "#3a1a1a"
+    },
+    {
+      "type": "dialog",
+      "title": "Guide AI",
+      "text": "Every fall teaches something. Rise again and try.",
+      "texture": "/char1.png",
+      "bgColor": "#2a1a2a"
+    },
+    {
+      "type": "dialog",
+      "title": "Guide AI",
+      "text": "The platform is still there. So are you. Keep going.",
+      "texture": "/char1.png",
+      "bgColor": "#1a1a3a"
+    }
+  ],
+  "sequence": [
+    {
+      "type": "render_empty"
+    },
+    {
+      "type": "dialog",
+      "title": "Guide AI",
+      "text": "Kaelen. Welcome to Aether Reach. Three parkour courses await you. Each one is harder than the last. Reach the green platform at the end of each course to advance.",
+      "texture": "/char1.png",
+      "bgColor": "#1a2a3a"
+    },
+    {
+      "type": "dialog",
+      "title": "Level 1 - Begin",
+      "text": "Your first course. Short and straightforward. Learn the rhythm of the jumps. Do not rush.",
+      "texture": "/char1.png",
+      "bgColor": "#1a2a3a"
+    },
+    {
+      "type": "parkour",
+      "length": 10,
+      "jumps": ["forward2flat", "forward1up"]
+    },
+    {
+      "type": "dialog",
+      "title": "Level 1 - Complete",
+      "text": "Well done, Kaelen. You found your footing. The next course adds diagonal jumps. The gap is the same but the angle changes. Stay sharp.",
+      "texture": "/char1.png",
+      "bgColor": "#1a3a1a"
+    },
+    {
+      "type": "dialog",
+      "title": "Level 2 - Begin",
+      "text": "This course introduces diagonal platforms. Read the path ahead before each jump.",
+      "texture": "/char1.png",
+      "bgColor": "#1a2a3a"
+    },
+    {
+      "type": "parkour",
+      "length": 20,
+      "jumps": ["forward2flat", "diag1flat", "forward1up"]
+    },
+    {
+      "type": "dialog",
+      "title": "Level 2 - Complete",
+      "text": "Impressive. You adapted quickly. The final course uses every jump type and is twice as long. This is the real challenge.",
+      "texture": "/char1.png",
+      "bgColor": "#1a3a1a"
+    },
+    {
+      "type": "dialog",
+      "title": "Level 3 - Final Challenge",
+      "text": "Every jump is in play now. Rising diagonals, long gaps, sharp turns. Do not hesitate. Reach the platform and finish what you started.",
+      "texture": "/char1.png",
+      "bgColor": "#2a1a3a"
+    },
+    {
+      "type": "parkour",
+      "length": 40,
+      "jumps": ["forward2flat", "diag1flat", "diag1up", "forward1up"]
+    },
+    {
+      "type": "win_screen",
+      "title": "Aether Reach - Complete",
+      "text": "You did it, Kaelen. All three courses cleared. The Aether Reach is yours."
+    }
+  ]
+}
