@@ -123,10 +123,8 @@ public class AetherReach implements Runnable {
         try {
             while (!Display.isCloseRequested()) {
                 timer.advanceTime();
-                if (!storyDialogOpen && !winScreenOpen) {
-                    for (int i = 0; i < timer.ticks; i++) {
-                        tick();
-                    }
+                for (int i = 0; i < timer.ticks; i++) {
+                    tick();
                 }
                 render(timer.a);
 
