@@ -47,21 +47,25 @@ public class Player {
         xRot = Math.max(-90.0F, Math.min(90.0F, xRot));
     }
 
+    public boolean inputEnabled = true;
+
     public void tick() {
         xo = x; yo = y; zo = z;
 
-        if (Keyboard.isKeyDown(Keyboard.KEY_R)) {
+        if (inputEnabled && Keyboard.isKeyDown(Keyboard.KEY_R)) {
             resetPos();
         }
 
         float moveX = 0, moveZ = 0;
-        if (Keyboard.isKeyDown(Keyboard.KEY_UP)    || Keyboard.isKeyDown(Keyboard.KEY_W)) moveZ--;
-        if (Keyboard.isKeyDown(Keyboard.KEY_DOWN)  || Keyboard.isKeyDown(Keyboard.KEY_S)) moveZ++;
-        if (Keyboard.isKeyDown(Keyboard.KEY_LEFT)  || Keyboard.isKeyDown(Keyboard.KEY_A)) moveX--;
-        if (Keyboard.isKeyDown(Keyboard.KEY_RIGHT) || Keyboard.isKeyDown(Keyboard.KEY_D)) moveX++;
+        if (inputEnabled) {
+            if (Keyboard.isKeyDown(Keyboard.KEY_UP)    || Keyboard.isKeyDown(Keyboard.KEY_W)) moveZ--;
+            if (Keyboard.isKeyDown(Keyboard.KEY_DOWN)  || Keyboard.isKeyDown(Keyboard.KEY_S)) moveZ++;
+            if (Keyboard.isKeyDown(Keyboard.KEY_LEFT)  || Keyboard.isKeyDown(Keyboard.KEY_A)) moveX--;
+            if (Keyboard.isKeyDown(Keyboard.KEY_RIGHT) || Keyboard.isKeyDown(Keyboard.KEY_D)) moveX++;
 
-        if ((Keyboard.isKeyDown(Keyboard.KEY_SPACE) || Keyboard.isKeyDown(Keyboard.KEY_LBRACKET)) && onGround) {
-            yd = 0.12F;
+            if ((Keyboard.isKeyDown(Keyboard.KEY_SPACE) || Keyboard.isKeyDown(Keyboard.KEY_LBRACKET)) && onGround) {
+                yd = 0.12F;
+            }
         }
 
         float accel = onGround ? 0.02F : 0.005F;

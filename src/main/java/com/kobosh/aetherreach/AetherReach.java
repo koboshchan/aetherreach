@@ -200,6 +200,7 @@ public class AetherReach implements Runnable {
     }
 
     private void tick() {
+        player.inputEnabled = !storyDialogOpen && !winScreenOpen;
         player.tick();
         if (!won) checkWin();
     }
