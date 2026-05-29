@@ -9,7 +9,10 @@ import java.nio.ByteOrder;
 import java.util.HashMap;
 
 public class FontRenderer {
+    // key -> [texId, w, h]
     private final HashMap<String, int[]> textureCache = new HashMap<>();
+    // key -> last rendered text (for drawDynamic change detection)
+    private final HashMap<String, String> textLastSeen = new HashMap<>();
 
     public void drawString(String text, float x, float y, int screenW, int screenH) {
         drawString(text, x, y, screenW, screenH, true);
@@ -21,15 +24,27 @@ public class FontRenderer {
     }
 
     public void drawDynamic(String key, String text, float x, float y, int screenW, int screenH, boolean centered) {
-        int[] entry = bakeTexture(text);
-        textureCache.put(key, entry);
+        int[] entry = getCachedEntry(key, text);
         renderQuad(entry, x, y, screenW, screenH, centered);
     }
 
     public void drawDynamicRight(String key, String text, float rightX, float y, int screenW, int screenH) {
-        int[] entry = bakeTexture(text);
-        textureCache.put(key, entry);
+        int[] entry = getCachedEntry(key, text);
         renderQuad(entry, rightX - entry[1], y, screenW, screenH, false);
+    }
+
+    /** Returns cached texture for key, rebaking (and freeing old GL texture) only when text changes. */
+    private int[] getCachedEntry(String key, String text) {
+        String last = textLastSeen.get(key);
+        if (!text.equals(last)) {
+            int[] old = textureCache.get(key);
+            if (old != null) GL11.glDeleteTextures(old[0]);
+            int[] entry = bakeTexture(text);
+            textureCache.put(key, entry);
+            textLastSeen.put(key, text);
+            return entry;
+        }
+        return textureCache.get(key);
     }
 
     private void renderQuad(int[] entry, float sx, float sy, int sw, int sh, boolean centered) {

@@ -167,6 +167,7 @@ public class AetherReach implements Runnable {
     }
 
     private void startEmptyWorld() {
+        if (renderer != null) renderer.destroy();
         world = new Level(256, 256, 64);
         renderer = new LevelRenderer(world);
         player = new Player(world);
@@ -174,6 +175,7 @@ public class AetherReach implements Runnable {
     }
 
     private void startParkour(int length, Set<String> jumps) {
+        if (renderer != null) renderer.destroy();
         world = new Level(256, 256, 64);
         world.generateParkour(length, jumps);
         renderer = new LevelRenderer(world);

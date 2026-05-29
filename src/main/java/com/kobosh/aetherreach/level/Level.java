@@ -9,7 +9,14 @@ public class Level {
     public final int width;
     public final int height;
     public final int depth;
-    public int goalY = 52;
+
+    // Ground layer heights (bottom to top)
+    public static final int Y_STONE        = 0;
+    public static final int Y_GRASS        = 1;
+    public static final int GROUND_SURFACE = Y_GRASS;      // grass is the visible surface
+    public static final int PARKOUR_BASE   = Y_GRASS + 1;  // first open air above grass
+
+    public int goalY = PARKOUR_BASE + 10;
     public int goalPlatformX = 128;
     public int goalPlatformZ = 128;
 
@@ -24,12 +31,11 @@ public class Level {
         this.voxels = new byte[width * height * depth];
         this.lightColumn = new int[width * height];
 
-        int solidBelow = depth * 2 / 3;
         for (int x = 0; x < width; x++) {
             for (int y = 0; y < depth; y++) {
                 for (int z = 0; z < height; z++) {
                     int idx = (y * height + z) * width + x;
-                    voxels[idx] = (byte) (y <= solidBelow ? 1 : 0);
+                    voxels[idx] = (byte) (y <= GROUND_SURFACE ? 1 : 0);
                 }
             }
         }
@@ -116,7 +122,7 @@ public class Level {
         if (enabledJumps.contains("forward1up"))   allowedTypes.add(3);
         if (allowedTypes.isEmpty()) { allowedTypes.add(0); allowedTypes.add(3); }
 
-        int cy = depth  * 2 / 3 + 1;
+        int cy = PARKOUR_BASE; // first open layer above ground
 
         int[][] dirs = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}};
         int[] startDir = dirs[rand.nextInt(4)];
@@ -170,7 +176,7 @@ public class Level {
             }
 
             cx = Math.max(1, Math.min(width  - 2, cx + dx));
-            cy = Math.max(depth * 2 / 3 + 1, Math.min(depth - 2, cy + dy));
+            cy = Math.max(PARKOUR_BASE, Math.min(depth - 2, cy + dy));
             cz = Math.max(1, Math.min(height - 2, cz + dz));
             fdx = newFdx;
             fdz = newFdz;

@@ -33,8 +33,7 @@ public class Chunk {
         updates++;
         rebuiltThisFrame++;
 
-        int grassY = world.depth * 2 / 3;
-        int topY   = world.goalY;
+        int topY = world.goalY;
 
         GL11.glNewList(displayLists + layer, GL11.GL_COMPILE);
         GL11.glEnable(GL11.GL_TEXTURE_2D);
@@ -45,10 +44,10 @@ public class Chunk {
             for (int y = y0; y < y1; y++) {
                 for (int z = z0; z < z1; z++) {
                     if (!world.isTile(x, y, z)) continue;
-                    if (y == grassY)      Tile.grass.render(tess, world, layer, x, y, z);
-                    else if (y == topY)   Tile.goal.render(tess, world, layer, x, y, z);
-                    else if (y > grassY)  Tile.wood.render(tess, world, layer, x, y, z);
-                    else                  Tile.rock.render(tess, world, layer, x, y, z);
+                    if (y == Level.Y_GRASS)       Tile.grass.render(tess, world, layer, x, y, z);
+                    else if (y == topY)           Tile.goal.render(tess, world, layer, x, y, z);
+                    else if (y == Level.Y_STONE)  Tile.rock.render(tess, world, layer, x, y, z);
+                    else                          Tile.wood.render(tess, world, layer, x, y, z);
                 }
             }
         }
@@ -64,6 +63,13 @@ public class Chunk {
             rebuild(1);
         }
         GL11.glCallList(displayLists + layer);
+    }
+
+    public void destroy() {
+        if (displayLists >= 0) {
+            GL11.glDeleteLists(displayLists, 2);
+            displayLists = -1;
+        }
     }
 
     public void setDirty() {

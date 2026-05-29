@@ -34,6 +34,13 @@ public class LevelRenderer implements LevelListener {
         }
     }
 
+    public void destroy() {
+        for (Chunk chunk : chunks) {
+            if (chunk != null) chunk.destroy();
+        }
+        world.removeListener(this);
+    }
+
     public void render(Player player, int layer) {
         Chunk.rebuiltThisFrame = 0;
         Frustum frustum = Frustum.getFrustum();

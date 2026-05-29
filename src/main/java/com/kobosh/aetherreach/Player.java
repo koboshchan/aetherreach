@@ -29,7 +29,7 @@ public class Player {
 
     private void resetPos() {
         float spawnX = 128.5F;
-        float spawnY = world.depth * 2 / 3 + 1 + EYE_HEIGHT;
+        float spawnY = Level.PARKOUR_BASE + EYE_HEIGHT;
         float spawnZ = 128.5F;
         teleport(spawnX, spawnY, spawnZ);
     }
@@ -82,7 +82,12 @@ public class Player {
         resolveBlockIntersection();
 
         // Fell off course — reset
-        if (onGround && y < 45.0F) {
+        // Parkour blocks start at y=PARKOUR_BASE (top face at PARKOUR_BASE+1).
+        // Grass floor top is at PARKOUR_BASE, so eye height there is PARKOUR_BASE+EYE_HEIGHT.
+        // If the player is on the ground but NOT on a parkour block, their eye y < PARKOUR_BASE+1+EYE_HEIGHT.
+        boolean onGrassFloor = onGround && y < Level.PARKOUR_BASE + 1 + EYE_HEIGHT;
+        boolean inVoid       = y < Level.PARKOUR_BASE + EYE_HEIGHT - 0.5F;
+        if (onGrassFloor || inVoid) {
             boolean onStartPlatform = x > 124.0F && x < 132.0F && z > 124.0F && z < 132.0F;
             if (!onStartPlatform) {
                 died = true;
